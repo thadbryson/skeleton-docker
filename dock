@@ -1,0 +1,80 @@
+#!/bin/bash
+
+PROJECT="" # Project code goes here.
+
+cd ./docker/
+
+if [ $# -eq 1 ] || [ $# -eq 2 ]; then
+    if [ $1 == "redo" ]; then
+        read -r -p "This will delete your existing docker containers for this project, re-build, and start your containers.  Are you sure? [N/y]" response
+        if [[ $response =~ ^(yes|y) ]]; then
+            docker-compose stop
+            docker-compose rm -f
+            docker-compose build --no-cache
+            docker-compose --verbose up -d
+        fi
+
+    elif [ $1 == "start" ]; then
+        docker-compose --verbose up -d
+
+    elif [ $1 == "restart" ]; then
+        docker-compose restart
+
+    elif [ $1 == "stop" ]; then
+        docker-compose stop
+
+    elif [ $1 == "ssh" ]; then
+        docker exec -u 1000 -i -t $2 bash
+
+    elif [ $1 == "ssh-root" ]; then
+        docker exec -ti $2 bash
+
+    elif [ $1 == "stats" ]; then
+        docker stats $(docker ps|grep -v "NAMES"|awk '{ print $NF }'|tr "\n" " ")
+
+    elif [ $1 == "logs" ]; then
+        docker-compose logs $PROJECT-php
+
+    elif [ $1 == "logs-all" ]; then
+        docker-compose logs
+
+    elif [ $1 == "remove" ]; then
+        read -r -p "This will delete your existing docker containers for this project.  Are you sure? [N/y]" response
+        if [[ $response =~ ^(yes|y) ]]; then
+            docker-compose stop
+            docker-compose rm -f
+        fi
+
+    elif [ $1 == "build" ]; then
+        docker-compose build --no-cache
+
+    ##
+    # Custom system commands can go here.
+    # - "php artisan" specifically is for Laravel
+    ##
+    elif [ $1 == "artisan" ]; then
+        docker exec $PROJECT-php php artisan $2
+    fi
+
+    exit 0;
+fi
+
+echo "================================================================================"
+echo "Usage: ./dock COMMAND"
+echo
+echo "COMMAND may be:"
+echo "  artisan                     Call Laravel Artisan CLI"
+echo "  stats                       show stats for all running containers"
+echo "  start                       starts all containers"
+echo "  stop                        stops all running containers"
+echo "  restart                     restarts all running containers"
+echo "  remove                      delete project containers"
+echo "  build                       (re)builds all containers"
+echo "  redo                        stop, remove, build, and start all containers"
+
+echo "  logs <SEARCH TERM>          show PHP logs"
+echo "  logs-all <SEARCH TERM>      search logs for all containers"
+echo "  ssh <CONTAINER NAME>        ssh into the specified container"
+echo "  ssh-root <CONTAINER NAME>   ssh AS ROOT into the specified container"
+echo "================================================================================"
+exit 1
